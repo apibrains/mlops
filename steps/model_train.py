@@ -1,12 +1,20 @@
 import logging
+
+import mlflow
 import pandas as pd
 from zenml import step
-from src.model_dev import LinearRegressionModel
+from zenml.client import Client
 from sklearn.base import RegressorMixin
+
+from src.model_dev import LinearRegressionModel, RandomForestModel
+
 from .config import ModelNameConfig
 
 
-@step
+
+experiment_tracker = Client().active_stack.experiment_tracker
+
+@step(experiment_tracker=experiment_tracker.name)
 def train_model(
     X_train: pd.DataFrame,
     X_test: pd.DataFrame,
@@ -27,7 +35,13 @@ def train_model(
     try:
         model = None
         if config.model_name == "LinearRegression":
+            mlflow.sklearn.autolog()
             model = LinearRegressionModel()
+            trained_model = model.train(X_train, y_train)
+            return trained_model
+        elif config.model_name == "RandomForest":
+            mlflow.sklearn.autolog()
+            model = RandomForestModel()
             trained_model = model.train(X_train, y_train)
             return trained_model
         else:
